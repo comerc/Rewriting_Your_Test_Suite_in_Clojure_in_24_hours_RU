@@ -1,8 +1,8 @@
 #Rewriting Your Test Suite in Clojure in 24 hours
 
-This is a story about how I built a compiler to automatically translate [CircleCI’s](https://circleci.com/) 14,000 line test suite into another testing library, in about 24 hours.
+Эта история о том как я написал компилятор для автоматической трансляции сценариев тестирования [CircleCI’s](https://circleci.com/) в 14,000 строк в другую библиотеку тестирования за 24 часа.
 
-[CircleCI’s](https://circleci.com/) test suite is probably one of the larger in the Clojure world today. Our server-side code is 100% Clojure, including the test suite, which is currently 14,000 lines, in 140 files, with 5,000 assertions. Without [parallelization](https://circleci.com/docs/how-parallelism-works/), it takes 40 minutes to run.
+На сегодняшний день набор тестов [CircleCI’s](https://circleci.com/) возможно один из самых больших в мире Clojure. Наш серверный код на 100% Clojure, включая тесты, состоящие из 14,000 строк, в 140 файлах, с 5,000 (ассертами?). Без [распараллеливания](https://circleci.com/docs/how-parallelism-works/), выполнение занимает 40 минут.
 
 At the start of this adventure, all of those tests were written in [Midje](https://github.com/marick/Midje), a BDD testing library, somewhat similar to RSpec. We weren’t really happy with Midje, and decided to move to [clojure.test](http://richhickey.github.io/clojure/clojure.test-api.html), which is probably the most commonly used test library. `clojure.test` is simpler and less magical, with a larger ecosystem of tools and plugins.
 
