@@ -1,14 +1,14 @@
 #Rewriting Your Test Suite in Clojure in 24 hours
 
-Эта история о том как я написал компилятор для автоматической трансляции сценариев тестирования [CircleCI’s](https://circleci.com/) в 14,000 строк в другую библиотеку тестирования за 24 часа.
+Эта история о том как я написал компилятор для автоматической трансляции сценариев тестирования [CircleCI’s](https://circleci.com/) из 14,000 строк в другую библиотеку тестирования за 24 часа.
 
-На сегодняшний день набор тестов [CircleCI’s](https://circleci.com/) возможно один из самых больших в мире Clojure. Наш серверный код на 100% Clojure, включая тесты, состоящие из 14,000 строк, в 140 файлах, с 5,000 (ассертами?). Без [распараллеливания](https://circleci.com/docs/how-parallelism-works/), выполнение занимает 40 минут.
+На сегодняшний день набор тестов [CircleCI’s](https://circleci.com/) возможно один из самых больших в мире Clojure. Наш серверный код на 100% Clojure, включая тесты, состоящие из 14,000 строк, в 140 файлах, с 5,000 ассертами. Без [распараллеливания](https://circleci.com/docs/how-parallelism-works/), выполнение занимает 40 минут.
 
-At the start of this adventure, all of those tests were written in [Midje](https://github.com/marick/Midje), a BDD testing library, somewhat similar to RSpec. We weren’t really happy with Midje, and decided to move to [clojure.test](http://richhickey.github.io/clojure/clojure.test-api.html), which is probably the most commonly used test library. `clojure.test` is simpler and less magical, with a larger ecosystem of tools and plugins.
+На старте этого приключения все тесты были написаны на [Midje](https://github.com/marick/Midje), библиотека для BDD тестирования, что-то похожее на RSpec. Мы не были особо счастливы с Midje, и решили перейти на [clojure.test](http://richhickey.github.io/clojure/clojure.test-api.html), которая, возможно, самая широко используемая библиотека тестирования. `clojure.test` проще и в ней меньше магии, больше экосистема тулов и плагинов.
 
-Obviously, it’s not practical to manually rewrite 5,000 tests by hand. Instead, we decide to use Clojure to rewrite them automatically, using Clojure’s built-in language manipulation features.
+Очевидно, что не практично переписывать 5,000 тестов руками. Вместо этого мы решили использовать Clojure, чтобы переписать их автоматически, используя встроенные в Clojure функции манипулирования языком.
 
-Clojure is homoiconic, which means that all source files can be represented as data structures. Our translator parses each test file into a Clojure data structure. From there, we transform the code before writing it back to disk. Once on disk, we can load and run the tests, and even automatically check the file back in to version control if the tests pass, all without leaving the REPL.
+Clojure является гомоиконным, это значит, что все исходные файлы могут быть представленны в виде структуры данных. Наш транслятор переводит каждый тестовый файл в структуру данных Clojure. Затем, мы трансформируем код перед тем как записать его обратно на диск. Как только он записан, мы можем запустить тесты, и даже автоматически добавить файл обратно в систему контроля версий если тесты прошли, и все это не выходя из REPL.
 
 ##Reading
 
