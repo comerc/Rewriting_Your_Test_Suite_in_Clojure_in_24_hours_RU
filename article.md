@@ -4,7 +4,7 @@ This is a story about how I built a compiler to automatically translate [CircleC
 
 [CircleCI’s](https://circleci.com/) test suite is probably one of the larger in the Clojure world today. Our server-side code is 100% Clojure, including the test suite, which is currently 14,000 lines, in 140 files, with 5,000 assertions. Without [parallelization](https://circleci.com/docs/how-parallelism-works/), it takes 40 minutes to run.
 
-At the start of this adventure, all of those tests were written in [Midje](https://github.com/marick/Midje), a BDD testing library, somewhat similar to RSpec. We weren’t really happy with Midje, and decided to move to [`clojure.test`](http://richhickey.github.io/clojure/clojure.test-api.html), which is probably the most commonly used test library. clojure.test is simpler and less magical, with a larger ecosystem of tools and plugins.
+At the start of this adventure, all of those tests were written in [Midje](https://github.com/marick/Midje), a BDD testing library, somewhat similar to RSpec. We weren’t really happy with Midje, and decided to move to `[clojure.test](http://richhickey.github.io/clojure/clojure.test-api.html)`, which is probably the most commonly used test library. clojure.test is simpler and less magical, with a larger ecosystem of tools and plugins.
 
 Obviously, it’s not practical to manually rewrite 5,000 tests by hand. Instead, we decide to use Clojure to rewrite them automatically, using Clojure’s built-in language manipulation features.
 
