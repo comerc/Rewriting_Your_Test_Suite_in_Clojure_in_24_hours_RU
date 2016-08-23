@@ -11,11 +11,13 @@ Obviously, it’s not practical to manually rewrite 5,000 tests by hand. Instead
 Clojure is homoiconic, which means that all source files can be represented as data structures. Our translator parses each test file into a Clojure data structure. From there, we transform the code before writing it back to disk. Once on disk, we can load and run the tests, and even automatically check the file back in to version control if the tests pass, all without leaving the REPL.
 
 ##Reading
+
 The key to this entire operation is `read`. `read-string` is a built-in Clojure function which takes a string containing any Clojure code, and returns it as a Clojure data structure. It’s the same function the compiler uses when loading source files. A quick example: `(read-string "[1 2 3]")` returns `[1 2 3]`.
 
 We use `read` to turn our test code into a big nested list, which can be modified by normal Clojure code.
 
 ##Transforming
+
 Our tests were written to use `midje`, and we want to transform them to use `clojure.test`. Here’s an example test using `midje`:
 
 ```
@@ -25,25 +27,30 @@ Our tests were written to use `midje`, and we want to transform them to use `clo
 (fact "foo works"
   (foo x) => 42)
 ```  
-and a transformed version using clojure.test:
 
+and a transformed version using `clojure.test`:
+
+```
 (ns circle.foo-test
   (:require [clojure.test :refer :all]))
 
 (deftest foo-works
   (is (= 42 (foo x))))
+```
+
 The transformation involves replacing:
 
-midje.sweet with clojure.test in the ns form
+- `midje.sweet` with `clojure.test` in the ns form
 
-(fact "a test name"...) with (deftest a-test-name ...), because clojure.test names are vars, not strings
+- `(fact "a test name"...)` with `(deftest a-test-name ...)`, because `clojure.test` names are vars, not strings
 
-(foo x) => 42 with (is (= 42 (foo x)))
+- `(foo x) => 42` with `(is (= 42 (foo x)))`
 
-a number of smaller details, which we’re ignoring for now
+- a number of smaller details, which we’re ignoring for now
 
 The transformation is a simple depth-first tree walk:
 
+```
 (defn munge-form [form]
   (let [form (-> form
                  (replace-midje-sweet)
@@ -58,113 +65,168 @@ The transformation is a simple depth-first tree walk:
                               ...
                               (map munge-form)))
       :else form))
-The -> syntax behaves much like chaining in Ruby or JQuery, or Bash’s pipes: it passes the result of a function call as an argument to the next function call.
+```
 
-The first part (let [form ...]) takes a Clojure form and calls each translation function on it. The second part takes lists of forms–representing other Clojure expressions and functions–and recursively transforms them too.
+The `->` syntax behaves much like chaining in Ruby or JQuery, or Bash’s pipes: it passes the result of a function call as an argument to the next function call.
+
+The first part `(let [form ...])` takes a Clojure form and calls each translation function on it. The second part takes lists of forms–representing other Clojure expressions and functions–and recursively transforms them too.
 
 The interesting work happens in the replace functions. They’re all generally of the form:
 
+```
 (if (this-form-is-relevant? form)
   (some-transformation form)
   form)
-i.e., they check to see if the form passed in is relevant to their interests, and if so transform it appropriately. So replace-midje-sweet looks like
+```
 
+i.e., they check to see if the form passed in is relevant to their interests, and if so transform it appropriately. So `replace-midje-sweet` looks like
+
+```
 (defn replace-midje-sweet [form]
   (if (= 'midje.sweet form)
     'clojure.test
     form))
-Arrows
+```
+
+##Arrows
+
 Most of Midje’s testing behavior centers around “arrows”, an unidiomatic construct that Midje uses to implement a BDD style declarative test case. A simple example:
 
+```
 (foo 42) => 5
-asserts that (foo 42) returns 5.
+```
+
+asserts that `(foo 42)` returns 5.
 
 Depending on the arrow uses, and the types on either side of the arrow, there are a large number of possible behaviours.
 
+```
 (foo 42) => map?
+```
+
 As as example, if the right-hand side above is a function, this asserts that the result is truthy when passed to the function map?. In standard clojure this would be:
 
+```
 (map? (foo 42))
+```
+
 Here are a few examples of some midje arrows:
 
+```
 (foo 42) => falsey
 (foo 42) => map?
 (foo 42) => (throws Exception)
 (foo 42) =not=> 3
 (foo 42) => #"hello world" ;; regex
 (foo 42) =not=> "hello"
-Replacing Arrows
+```
+
+###Replacing Arrows
 
 The actual translation is handled by about 40 core.match rules. They look like
 
+```
 (match [actual arrow expected]
   [actual '=> 'truthy] `(is ~actual)
   [actual '=> expected] `(is (= ~expected ~actual)
   [actual '=> (_ :guard regex?)] `(is (re-find ~contents ~actual))
   [actual '=> nil] `(is (nil? ~actual)))
+```
+
 (For Clojure experts, I’ve elided a lot of ~’ characters in the macros above to improve readability. Read the actual source to see what this really looks like.)
 
-Most of these translations are straightforward. However, things get significantly more complicated with the contains form:
+Most of these translations are straightforward. However, things get significantly more complicated with the `contains` form:
 
+```
 (foo 42) => (contains {:a 1})
 (foo 42) => (contains [:a :b] :gaps-ok)
 (foo 42) => (contains [:a :b] :in-any-order)
 (foo 42) => (contains "hello")
+```
+
 The last case is particularly interesting. In the expression
 
+```
 (foo 42) => (contains "hello")
-There are two completely different values that could make this test pass. (foo 42) could be a list that contains the item “hello”, or it could be a string that contains the substring “hello”:
+```
 
+There are two completely different values that could make this test pass. `(foo 42)` could be a list that contains the item “hello”, or it could be a string that contains the substring “hello”:
+
+```
 "hello world" => (contains "hello")
 ["foo" "hello" "bar"] => (contains "hello")
-In general, the contains forms are difficult to translate automatically. Some cases require runtime information (like the last example), and because there’s no existing implementation for many of the contains cases in standard Clojure, such as (contains [:a :b] :in-any-order), we decided to punt on all contains cases. The “fall through” rule looked like:
+```
 
+In general, the `contains` forms are difficult to translate automatically. Some cases require runtime information (like the last example), and because there’s no existing implementation for many of the `contains` cases in standard Clojure, such as `(contains [:a :b] :in-any-order)`, we decided to punt on all `contains` cases. The “fall through” rule looked like:
+
+```
 [actual arrow expected] (is (~arrow ~expected ~actual))
-which turns (foo 42) => (contains bar) into (is (=> (contains bar) (foo 42))). This intentionally doesn’t compile because midje’s arrow function definitions aren’t loaded, and so we can fix these up by hand instead.
+```
 
-Runtime Type Information
+which turns `(foo 42) => (contains bar)` into `(is (=> (contains bar) (foo 42)))`. This intentionally doesn’t compile because midje’s arrow function definitions aren’t loaded, and so we can fix these up by hand instead.
+
+###Runtime Type Information
 
 There was one extra complication with automatic translation. If I have two expressions:
 
+```
 (let [bar 3]
   (foo) => bar
+```
+
 and
 
+```
 (let [bar clojure.core/map?]
   (foo) => bar
-Midje’s arrow dispatch depends on the type of the right-hand expression, which can only (easily) be determined at runtime. If bar resolves to data, like a string, number, list or map, midje tests for equality. But if bar resolves to a function, midje instead calls the function, i.e. (is (= bar (foo))) vs (is (bar (foo))). Our 90% solution requires the original test namespace, and resolves functions during the translation process:
+```
 
+Midje’s arrow dispatch depends on the type of the right-hand expression, which can only (easily) be determined at runtime. If `bar` resolves to data, like a string, number, list or map, midje tests for equality. But if `bar` resolves to a function, midje instead _calls_ the function, i.e. `(is (= bar (foo)))` vs `(is (bar (foo)))`. Our 90% solution `require`s the original test namespace, and `resolve`s functions during the translation process:
+
+```
 (defn form-is-fn? [ns f]
   (let [resolved (ns-resolve ns f)]
     (and resolved (or (fn? resolved)
                       (and (var? resolved)
                            (fn? @resolved)))))))
+```
+
 This works great in most cases, but fails when a local variable shadows a global variable name:
 
+```
 (let [s [1 2 3]
       count (count s)]
   (foo s) => count)
-In this case, we want (is (= count (foo s))), but instead get (is (count (foo s))), which fails because in the local scope, count is a number, and (3 [1 2 3]) is an error. Thankfully there weren’t many of these situations, because solving this correctly would have required writing a full blown compiler with an understanding of the local variables in scope.
+```
 
-Running the tests
-Once the translation code was written, we needed a way to figure out if it worked. Since we run the code in a REPL at runtime, it’s trivial to instantly run tests after translation using clojure.test’s built-in functions.
+In this case, we want `(is (= count (foo s)))`, but instead get `(is (count (foo s)))`, which fails because in the local scope, count is a number, and `(3 [1 2 3])` is an error. Thankfully there weren’t many of these situations, because solving this correctly would have required writing a full blown compiler with an understanding of the local variables in scope.
 
-clojure.test’s design decisions made it easy to tie together the translation and evaluation process. All test functions are callable directly from the REPL without shelling out, and (clojure.test/run-all-tests) even returns a meaningful return value, a map containing the number of tests, passes and fails:
+##Running the tests
 
+Once the translation code was written, we needed a way to figure out if it worked. Since we run the code in a REPL at runtime, it’s trivial to instantly run tests after translation using `clojure.test`’s built-in functions.
+
+`clojure.test`’s design decisions made it easy to tie together the translation and evaluation process. All test functions are callable directly from the REPL without shelling out, and `(clojure.test/run-all-tests)` even returns a meaningful return value, a map containing the number of tests, passes and fails:
+
+```
 {:pass 61, :test 21, :error 0, :fail 0}
+```
+
 Being able to run the tests from the REPL made it vey convenient to modify the compiler and retest in a very tight feedback loop.
 
-The Reader
+###The Reader
+
 Not everything worked quite so simply, however.
 
-The “reader” (Clojure’s term for the part of the compiler that implement’s the read function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
+The “reader” (Clojure’s term for the part of the compiler that implement’s the `read` function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
 
-Code Indenting
-We didn’t find a very good library for indenting our new code idiomatically. We used clojure.pprint’s code mode, which although probably the best library out there, doesn’t do that great a job. We didn’t feel like writing that library during this project, so some files were written back to disk with non-idiomatic spacing and indentation. Now, when we work in a file with bad indention, we touch those up by hand. Really fixing this would have required an indenter that knows idiomatic formatting, and possibly respects file and line metadata on reader data.
+###Code Indenting
 
-There was a long delay between actually rewriting the test suite, and the publishing of this blog post. In the meantime, rewrite-clj has been released. I haven’t used it, but it looks like exactly what we were missing.
+We didn’t find a very good library for indenting our new code idiomatically. We used `clojure.pprint`’s code mode, which although probably the best library out there, doesn’t do that great a job. We didn’t feel like writing that library during this project, so some files were written back to disk with non-idiomatic spacing and indentation. Now, when we work in a file with bad indention, we touch those up by hand. Really fixing this would have required an indenter that knows idiomatic formatting, and possibly respects file and line metadata on reader data.
 
-Outcomes
+There was a long delay between actually rewriting the test suite, and the publishing of this blog post. In the meantime, [rewrite-clj](https://github.com/xsc/rewrite-clj) has been released. I haven’t used it, but it looks like exactly what we were missing.
+
+##Outcomes
+
 About 40% of our test files passed without manual intervention, which is pretty amazing given how quickly we threw this solution together. In the remaining files, about 90% of test assertions translated and passed. So 94% of the assertions in all files could be translated automatically, a great result.
 
-Our code is up on GitHub here. Let us know if you end up using it. While we wouldn’t recommend it for unsupervised translation, especially because of the comment and macro issues, it worked great for CircleCI as part of a supervised process.
+Our code is up on GitHub [here](https://github.com/circleci/translate-midje). Let [us](https://twitter.com/arohner) know if you end up using it. While we wouldn’t recommend it for unsupervised translation, especially because of the comment and macro issues, it worked great for [CircleCI](https://circleci.com/) as part of a supervised process.
