@@ -121,7 +121,7 @@ Here are a few examples of some midje arrows:
 (foo 42) =not=> "hello"
 ```
 
-###Replacing Arrows
+####Replacing Arrows
 
 The actual translation is handled by about 40 core.match rules. They look like
 
@@ -165,7 +165,7 @@ In general, the `contains` forms are difficult to translate automatically. Some 
 
 which turns `(foo 42) => (contains bar)` into `(is (=> (contains bar) (foo 42)))`. This intentionally doesn’t compile because midje’s arrow function definitions aren’t loaded, and so we can fix these up by hand instead.
 
-###Runtime Type Information
+####Runtime Type Information
 
 There was one extra complication with automatic translation. If I have two expressions:
 
@@ -213,13 +213,13 @@ Once the translation code was written, we needed a way to figure out if it worke
 
 Being able to run the tests from the REPL made it vey convenient to modify the compiler and retest in a very tight feedback loop.
 
-###The Reader
+####The Reader
 
 Not everything worked quite so simply, however.
 
 The “reader” (Clojure’s term for the part of the compiler that implement’s the `read` function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
 
-###Code Indenting
+####Code Indenting
 
 We didn’t find a very good library for indenting our new code idiomatically. We used `clojure.pprint`’s code mode, which although probably the best library out there, doesn’t do that great a job. We didn’t feel like writing that library during this project, so some files were written back to disk with non-idiomatic spacing and indentation. Now, when we work in a file with bad indention, we touch those up by hand. Really fixing this would have required an indenter that knows idiomatic formatting, and possibly respects file and line metadata on reader data.
 
