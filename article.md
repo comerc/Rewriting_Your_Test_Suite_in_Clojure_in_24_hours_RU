@@ -8,17 +8,17 @@
 
 Очевидно, что не практично переписывать 5,000 тестов руками. Вместо этого мы решили использовать Clojure, чтобы переписать их автоматически, используя встроенные в Clojure функции манипулирования языком.
 
-Clojure является гомоиконным, это значит, что все исходные файлы могут быть представленны в виде структуры данных. Наш транслятор переводит каждый тестовый файл в структуру данных Clojure. Затем, мы трансформируем код перед тем как записать его обратно на диск. Как только он записан, мы можем запустить тесты, и даже автоматически добавить файл обратно в систему контроля версий если тесты прошли, и все это не выходя из REPL.
+Clojure является гомоиконным, это значит, что все исходные файлы могут быть представленны в виде структуры данных. Наш транслятор переводит каждый тестовый файл в структуру данных Clojure. Затем, мы преобразуем код перед тем как записать его обратно на диск. Как только он записан, мы можем запустить тесты, и даже автоматически добавить файл обратно в систему контроля версий если тесты прошли, и все это не выходя из REPL.
 
-##Reading
+##Чтение
 
-The key to this entire operation is `read`. `read-string` is a built-in Clojure function which takes a string containing any Clojure code, and returns it as a Clojure data structure. It’s the same function the compiler uses when loading source files. A quick example: `(read-string "[1 2 3]")` returns `[1 2 3]`.
+Ключем ко всей этой операции является `read`. `read-string` втроенная в Clojure функция, которая принимает строку содержащую любой Clojure код, и возвращает его как структуру данных Clojure. Эту же самую функцию использует компилятор, когда загружает исходные файлы. Пример: `(read-string "[1 2 3]")` вернет `[1 2 3]`.
 
-We use `read` to turn our test code into a big nested list, which can be modified by normal Clojure code.
+Мы используем `read` для превращения кода наших тестов в большой вложенный лист, который может быть изменен обычным кодом Clojure.
 
-##Transforming
+##Преобразование
 
-Our tests were written to use `midje`, and we want to transform them to use `clojure.test`. Here’s an example test using `midje`:
+Наши тесты были написаны с использованием `midje`, и мы хотим преобразовать их с использованием `clojure.test`. Пример теста использующего `midje`:
 
 ```
 (ns circle.foo-test
@@ -28,7 +28,7 @@ Our tests were written to use `midje`, and we want to transform them to use `clo
   (foo x) => 42)
 ```  
 
-and a transformed version using `clojure.test`:
+и преобразованная версия, использующая `clojure.test`:
 
 ```
 (ns circle.foo-test
@@ -38,17 +38,17 @@ and a transformed version using `clojure.test`:
   (is (= 42 (foo x))))
 ```
 
-The transformation involves replacing:
+Преобразование включает замену:
 
-- `midje.sweet` with `clojure.test` in the ns form
+- `midje.sweet` на `clojure.test` в ns форме
 
-- `(fact "a test name"...)` with `(deftest a-test-name ...)`, because `clojure.test` names are vars, not strings
+- `(fact "a test name"...)` на `(deftest a-test-name ...)`, потому что имена `clojure.test` переменные, а не строки
 
-- `(foo x) => 42` with `(is (= 42 (foo x)))`
+- `(foo x) => 42` на `(is (= 42 (foo x)))`
 
-- a number of smaller details, which we’re ignoring for now
+- мелкие детали, которые пока пропустим
 
-The transformation is a simple depth-first tree walk:
+Преобразование - это простой depth-first обход дерева:
 
 ```
 (defn munge-form [form]
@@ -67,11 +67,11 @@ The transformation is a simple depth-first tree walk:
       :else form))
 ```
 
-The `->` syntax behaves much like chaining in Ruby or JQuery, or Bash’s pipes: it passes the result of a function call as an argument to the next function call.
+Поведение `->` похоже на chaining в Ruby или JQuery, или как Bash’s pipes: передает результат вычисления вызова функции как аргумент в вызов следующей функции
 
-The first part `(let [form ...])` takes a Clojure form and calls each translation function on it. The second part takes lists of forms–representing other Clojure expressions and functions–and recursively transforms them too.
+Первая часть `(let [form ...])` берет Clojure form и вызывает в ней каждую функцию преобразования. Вторая часть берет список из forms–representing остальных Clojure выражений и функций–и также рекурсивно преобразует их.
 
-The interesting work happens in the replace functions. They’re all generally of the form:
+Интересный процесс происходит в функциях замены. They’re all generally of the form:
 
 ```
 (if (this-form-is-relevant? form)
@@ -79,7 +79,7 @@ The interesting work happens in the replace functions. They’re all generally o
   form)
 ```
 
-i.e., they check to see if the form passed in is relevant to their interests, and if so transform it appropriately. So `replace-midje-sweet` looks like
+i.e., they check to see if the form passed in is relevant to their interests, и если так, преобразует их нужным образом. Поэтому `replace-midje-sweet` выглядит как
 
 ```
 (defn replace-midje-sweet [form]
