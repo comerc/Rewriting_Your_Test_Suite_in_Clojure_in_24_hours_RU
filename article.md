@@ -123,7 +123,7 @@ Here are a few examples of some midje arrows:
 
 ####Replacing Arrows
 
-The actual translation is handled by about 40 core.match rules. They look like
+The actual translation is handled by about 40 [core.match](https://github.com/clojure/core.match) rules. They look like
 
 ```
 (match [actual arrow expected]
