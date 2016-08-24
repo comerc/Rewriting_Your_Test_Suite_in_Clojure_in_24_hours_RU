@@ -157,7 +157,7 @@ i.e., they check to see if the form passed in is relevant to their interests, и
 ["foo" "hello" "bar"] => (contains "hello")
 ```
 
-В общем, форма `contains` сложна для автоматического преобразования. Некоторые кейсы требуют дополнительной информации в рантайме (как последний пример), и т.к. не существет реализации для большенства кейсов `contains` в языке Clojure, таких как `(contains [:a :b] :in-any-order)`, мы решили положить на все кейсы `contains`. Правило “потерпеть неудачу” выглядит так:
+В общем, форма `contains` сложна для автоматического преобразования. Некоторые кейсы требуют дополнительной информации во время выполнения (как последний пример), и т.к. не существет реализации для большенства кейсов `contains` в языке Clojure, таких как `(contains [:a :b] :in-any-order)`, мы решили положить на все кейсы `contains`. Правило “потерпеть неудачу” выглядит так:
 
 ```
 [actual arrow expected] (is (~arrow ~expected ~actual))
@@ -165,23 +165,23 @@ i.e., they check to see if the form passed in is relevant to their interests, и
 
 которое превращает `(foo 42) => (contains bar)` в `(is (=> (contains bar) (foo 42)))`. Оно преднамеренно не компилируется, потому как определение функции стрелки midje не загружено, и мы можем поправить это руками.
 
-####Runtime Type Information
+####Информация о типах во время выполнения
 
-There was one extra complication with automatic translation. If I have two expressions:
+Была еще одна дополнительная компиляция с автоматическим преобразованием. Если имеем два выражения:
 
 ```
 (let [bar 3]
   (foo) => bar
 ```
 
-and
+и
 
 ```
 (let [bar clojure.core/map?]
   (foo) => bar
 ```
 
-Midje’s arrow dispatch depends on the type of the right-hand expression, which can only (easily) be determined at runtime. If `bar` resolves to data, like a string, number, list or map, midje tests for equality. But if `bar` resolves to a function, midje instead _calls_ the function, i.e. `(is (= bar (foo)))` vs `(is (bar (foo)))`. Our 90% solution `require`s the original test namespace, and `resolve`s functions during the translation process:
+стрелка Midje зависит от выражения справа, которое может быть определено только(лекго) во время выполнения. Если `bar` резолвится в данные, как string, number, list или map, midje проверяет на равенство. Но если `bar` резолвится в функцию, midje _вызывает_ эту функцию, т.е. `(is (= bar (foo)))` против `(is (bar (foo)))`. 90% нашего решения `требует` исходного пространства имен тестов, и `резолвит` функции во время процесса преобразования:
 
 ```
 (defn form-is-fn? [ns f]
@@ -191,7 +191,7 @@ Midje’s arrow dispatch depends on the type of the right-hand expression, which
                            (fn? @resolved)))))))
 ```
 
-This works great in most cases, but fails when a local variable shadows a global variable name:
+В большинстве случаев это работает отлично, но проблема возникает когда локальная переменная перекрывает глобальную:
 
 ```
 (let [s [1 2 3]
@@ -199,7 +199,7 @@ This works great in most cases, but fails when a local variable shadows a global
   (foo s) => count)
 ```
 
-In this case, we want `(is (= count (foo s)))`, but instead get `(is (count (foo s)))`, which fails because in the local scope, count is a number, and `(3 [1 2 3])` is an error. Thankfully there weren’t many of these situations, because solving this correctly would have required writing a full blown compiler with an understanding of the local variables in scope.
+В этом случае мы хотим `(is (= count (foo s)))`, но получаем `(is (count (foo s)))`, что ошибочно, т.к. в локальном окружении count это число, и `(3 [1 2 3])` вызывает ошибку. К счастью таких ситуаций было мало, решение этой проблемы потребовало бы написания полноценного компилятора с определением локальных переменных в окружении.
 
 ##Running the tests
 
