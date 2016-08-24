@@ -217,16 +217,16 @@ i.e., they check to see if the form passed in is relevant to their interests, и
 
 Однако, не все работало так просто.
 
-“reader” (Clojure’s term for the part of the compiler that implement’s the `read` function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
+The “reader” (выражение в Clojure для обозначения части компилятора, которая имплементирует функцию `read`) спроектирован для преобразования исходных файлов в структуры данных, прежде всего для использования компилятором. Он убирает комментарии, раскрывает макросы, что требует от нас проверки всех диффов вручную, чтобы вернуть эти строки. К счастью в тестах их было всего несколько. В нашем стиле программирования мы как правило предпочитаем документирование комментариям, и изолируем макросы в небольшом количестве файлов, так что это нас не сильно затронуло.
 
-####Code Indenting
+####Отступы
 
-We didn’t find a very good library for indenting our new code idiomatically. We used `clojure.pprint`’s code mode, which although probably the best library out there, doesn’t do that great a job. We didn’t feel like writing that library during this project, so some files were written back to disk with non-idiomatic spacing and indentation. Now, when we work in a file with bad indention, we touch those up by hand. Really fixing this would have required an indenter that knows idiomatic formatting, and possibly respects file and line metadata on reader data.
+Мы не нашли хорошую библиотеку, которая бы сделала изящные отступы в нашем новом коде. Мы использовали `clojure.pprint`, которая, возможно и является лучшей библиотекой, не делает чего-то сверхествественного. Мы не считали необходимым писать такую библиотеку в рамках этого проекта, так что некоторые файлы были записаны обратно на диск с не очень красивыми пробелами и отступами. Теперь, когда мы работаем непосредственно с файлом, мы можем исправить это руками. Реально это потребовало бы инструмента, который понимает идиоматическое форматирование и учитывает метаданные файла и строк на этапе чтения данных.
 
-There was a long delay between actually rewriting the test suite, and the publishing of this blog post. In the meantime, [rewrite-clj](https://github.com/xsc/rewrite-clj) has been released. I haven’t used it, but it looks like exactly what we were missing.
+Была большая задержка между переписыванием сценариев и публикацией этой статьи. Тем временем состоялся релиз [rewrite-clj](https://github.com/xsc/rewrite-clj). Я не пользовался ей, но на первый взгляд в ней есть то, чего нам так не хватало.
 
-##Outcomes
+##Результаты
 
-About 40% of our test files passed without manual intervention, which is pretty amazing given how quickly we threw this solution together. In the remaining files, about 90% of test assertions translated and passed. So 94% of the assertions in all files could be translated automatically, a great result.
+Около 40% тестов были пройдены без нашего вмешательства, что на самом деле потрясающе, учитывая насколько быстро мы собрали это решение. В оставшихся файлах, около 90% тест ассертов были преобразованы и пройдены. Так что 94% ассертов во всех файлах могут быть преобразованы автоматически, великолепный результат.
 
-Our code is up on GitHub [here](https://github.com/circleci/translate-midje). Let [us](https://twitter.com/arohner) know if you end up using it. While we wouldn’t recommend it for unsupervised translation, especially because of the comment and macro issues, it worked great for [CircleCI](https://circleci.com/) as part of a supervised process.
+Наш код можно найти на GitHub [здесь](https://github.com/circleci/translate-midje). Дайте [нам](https://twitter.com/arohner) знать, если будете использовать его. Т.к. мы бы не рекомендовали его для неконтроллируемого преобразования, особенно из-за комментариев и макросов, это работает хорошо для [CircleCI](https://circleci.com/) как часть контроллируемого процесса.
