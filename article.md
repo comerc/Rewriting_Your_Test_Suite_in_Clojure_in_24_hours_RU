@@ -1,4 +1,4 @@
-#Rewriting Your Test Suite in Clojure in 24 hours
+#Переписываем набор тестов на Clojure за 24 часа
 
 Эта история о том, как я написал компилятор для автоматической трансляции сценариев тестирования [CircleCI](https://circleci.com/), состоящих из 14000 строк, в другую библиотеку тестирования за 24 часа.
 
@@ -88,29 +88,29 @@ i.e., they check to see if the form passed in is relevant to their interests, и
     form))
 ```
 
-##Arrows
+##Стрелки
 
-Most of Midje’s testing behavior centers around “arrows”, an unidiomatic construct that Midje uses to implement a BDD style declarative test case. A simple example:
+Основное поведение тестирования в Midje сосредотачивается на “стрелках”, идеоматическая конструкция, которую Midje использует для имплементации декларативных тест кейсов BDD стиля. Простой пример:
 
 ```
 (foo 42) => 5
 ```
 
-asserts that `(foo 42)` returns 5.
+утверждает что `(foo 42)` возвращает 5.
 
-Depending on the arrow uses, and the types on either side of the arrow, there are a large number of possible behaviours.
+В зависимости от того какие стрелки используются, и какие типы по другую сторону от стрелки, варьируется большое количество разных поведений.
 
 ```
 (foo 42) => map?
 ```
 
-As as example, if the right-hand side above is a function, this asserts that the result is truthy when passed to the function map?. In standard clojure this would be:
+Если выше в примере справа это функция, то утверждается что результат правдив когда передан в функцию map?. В clojure это было бы так:
 
 ```
 (map? (foo 42))
 ```
 
-Here are a few examples of some midje arrows:
+Несколько примеров midje стрелок:
 
 ```
 (foo 42) => falsey
@@ -121,9 +121,9 @@ Here are a few examples of some midje arrows:
 (foo 42) =not=> "hello"
 ```
 
-####Replacing Arrows
+####Замена стрелок
 
-The actual translation is handled by about 40 [core.match](https://github.com/clojure/core.match) rules. They look like
+Данное преобразование обрабатывается порядка сорока [core.match](https://github.com/clojure/core.match) правилами. Которые выглядят вот так:
 
 ```
 (match [actual arrow expected]
@@ -133,9 +133,9 @@ The actual translation is handled by about 40 [core.match](https://github.com/cl
   [actual '=> nil] `(is (nil? ~actual)))
 ```
 
-(For Clojure experts, I’ve elided a lot of ~’ characters in the macros above to improve readability. Read the actual source to see what this really looks like.)
+(Для экспертов Clojure, чтобы повысить читаемость я игнорировал большинство символов ~’ в макросе выше. Чтобы посмотреть как реально это выглядит, смотрите исходные файлы.)
 
-Most of these translations are straightforward. However, things get significantly more complicated with the `contains` form:
+Большинство преобразований простые. Однако, все становится гораздо сложение с формой `contains`:
 
 ```
 (foo 42) => (contains {:a 1})
@@ -144,26 +144,26 @@ Most of these translations are straightforward. However, things get significantl
 (foo 42) => (contains "hello")
 ```
 
-The last case is particularly interesting. In the expression
+Пследний кейс особенно интересный. В выражении
 
 ```
 (foo 42) => (contains "hello")
 ```
 
-There are two completely different values that could make this test pass. `(foo 42)` could be a list that contains the item “hello”, or it could be a string that contains the substring “hello”:
+Есть два совершенно разных значения при которых тест будет успешно пройден. `(foo 42)` может быть списком, который содержит айтем “hello”, или может быть строкой, которая содержит подстроку “hello”:
 
 ```
 "hello world" => (contains "hello")
 ["foo" "hello" "bar"] => (contains "hello")
 ```
 
-In general, the `contains` forms are difficult to translate automatically. Some cases require runtime information (like the last example), and because there’s no existing implementation for many of the `contains` cases in standard Clojure, such as `(contains [:a :b] :in-any-order)`, we decided to punt on all `contains` cases. The “fall through” rule looked like:
+В общем, форма `contains` сложна для автоматического преобразования. Некоторые кейсы требуют дополнительной информации в рантайме (как последний пример), и т.к. не существет реализации для большенства кейсов `contains` в языке Clojure, таких как `(contains [:a :b] :in-any-order)`, мы решили положить на все кейсы `contains`. Правило “потерпеть неудачу” выглядит так:
 
 ```
 [actual arrow expected] (is (~arrow ~expected ~actual))
 ```
 
-which turns `(foo 42) => (contains bar)` into `(is (=> (contains bar) (foo 42)))`. This intentionally doesn’t compile because midje’s arrow function definitions aren’t loaded, and so we can fix these up by hand instead.
+которое превращает `(foo 42) => (contains bar)` в `(is (=> (contains bar) (foo 42)))`. Оно преднамеренно не компилируется, потому как определение функции стрелки midje не загружено, и мы можем поправить это руками.
 
 ####Runtime Type Information
 
