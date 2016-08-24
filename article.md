@@ -201,23 +201,23 @@ i.e., they check to see if the form passed in is relevant to their interests, и
 
 В этом случае мы хотим `(is (= count (foo s)))`, но получаем `(is (count (foo s)))`, что ошибочно, т.к. в локальном окружении count это число, и `(3 [1 2 3])` вызывает ошибку. К счастью таких ситуаций было мало, решение этой проблемы потребовало бы написания полноценного компилятора с определением локальных переменных в окружении.
 
-##Running the tests
+##Выполнение тестов
 
-Once the translation code was written, we needed a way to figure out if it worked. Since we run the code in a REPL at runtime, it’s trivial to instantly run tests after translation using `clojure.test`’s built-in functions.
+Когда преобразование кода было написано, нам нужно было понять работает ли оно. Т.к. мы запускаем код в REPL во время выполнения, нужно просто после преобразования запускать тесты встроенной функцией `clojure.test`.
 
-`clojure.test`’s design decisions made it easy to tie together the translation and evaluation process. All test functions are callable directly from the REPL without shelling out, and `(clojure.test/run-all-tests)` even returns a meaningful return value, a map containing the number of tests, passes and fails:
+Решения `clojure.test` помогают связать вместе процессы преобразования и вычисления. Все тестовые функции могут быть вызваны из REPL, и даже `(clojure.test/run-all-tests)` возвращает читаемое значение, отображение (map) содержащее количество тестов, пройденных и упавших:
 
 ```
 {:pass 61, :test 21, :error 0, :fail 0}
 ```
 
-Being able to run the tests from the REPL made it vey convenient to modify the compiler and retest in a very tight feedback loop.
+Возможность запускать тесты в REPL делает процесс очень удобным, можно делать изменения в компиляторе и перетестировать тут же получая обратную связь.
 
-####The Reader
+####Чтение
 
-Not everything worked quite so simply, however.
+Однако, не все работало так просто.
 
-The “reader” (Clojure’s term for the part of the compiler that implement’s the `read` function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
+“reader” (Clojure’s term for the part of the compiler that implement’s the `read` function) is designed to turn source files into data structures, primarily for consumption by the compiler. The reader strips comments, and expands macros, requiring us to review all diffs manually, and to revert lines that removed comments or contained macro definitions. Thankfully, there are only few of those in the tests. Our coding style tends to prefer docstrings over comments, and the macros tend to be isolated to a small set of utility files, so this didn’t affect us too much.
 
 ####Code Indenting
 
