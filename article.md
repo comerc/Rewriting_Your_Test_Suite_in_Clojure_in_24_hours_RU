@@ -90,27 +90,27 @@ i.e., they check to see if the form passed in is relevant to their interests, и
 
 ##Arrows
 
-Most of Midje’s testing behavior centers around “arrows”, an unidiomatic construct that Midje uses to implement a BDD style declarative test case. A simple example:
+Большинсво тестирования в Midje сконцентрировано вокруг `=>`, идиоматической конструкции которую Midje использует для реализации подобных BDD декларативных тест кейсов. Простой пример:
 
 ```
 (foo 42) => 5
 ```
 
-asserts that `(foo 42)` returns 5.
+Заявляет что `(foo 42)` возвращает 5.
 
-Depending on the arrow uses, and the types on either side of the arrow, there are a large number of possible behaviours.
+В зависимости от использования `=>` и типа скаждой стороны arrow, сушествует большое колличество разнообразного поведения.
 
 ```
 (foo 42) => map?
 ```
 
-As as example, if the right-hand side above is a function, this asserts that the result is truthy when passed to the function map?. In standard clojure this would be:
+Для примера, если правая часть выражения функция, как в выше преведенно примере, то что результат верен когда передан в функцию `map?`. В стандартном clojure:
 
 ```
 (map? (foo 42))
 ```
 
-Here are a few examples of some midje arrows:
+Еще несколько примеров использования `=>`:
 
 ```
 (foo 42) => falsey
@@ -123,7 +123,7 @@ Here are a few examples of some midje arrows:
 
 ####Replacing Arrows
 
-The actual translation is handled by about 40 [core.match](https://github.com/clojure/core.match) rules. They look like
+Реальная трансляция проводилась 40 [core.match](https://github.com/clojure/core.match) правилами. Они выглядили примерно вот так:
 
 ```
 (match [actual arrow expected]
@@ -133,9 +133,9 @@ The actual translation is handled by about 40 [core.match](https://github.com/cl
   [actual '=> nil] `(is (nil? ~actual)))
 ```
 
-(For Clojure experts, I’ve elided a lot of ~’ characters in the macros above to improve readability. Read the actual source to see what this really looks like.)
+(Для Clojure экспертов, я опустил больнство `~` символов в макросе для лучшей читаемости. Почитайте сорс, для чтобы понять как они выглядят в действительностию)
 
-Most of these translations are straightforward. However, things get significantly more complicated with the `contains` form:
+Большинство трансляция проста . Однако, все становиться значительно сложнее если присутствует `contains`:
 
 ```
 (foo 42) => (contains {:a 1})
@@ -144,13 +144,13 @@ Most of these translations are straightforward. However, things get significantl
 (foo 42) => (contains "hello")
 ```
 
-The last case is particularly interesting. In the expression
+Последний случай особенно интересен. В выражение:
 
 ```
 (foo 42) => (contains "hello")
 ```
 
-There are two completely different values that could make this test pass. `(foo 42)` could be a list that contains the item “hello”, or it could be a string that contains the substring “hello”:
+Сушествует два абсолютно разных значения в результате которых тест может пройти. `(foo 42)` может быть листом который содержит строку “hello”, или строкой которая содержит подстроку “hello”:
 
 ```
 "hello world" => (contains "hello")
